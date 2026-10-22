@@ -143,6 +143,10 @@ use strict;
 use warnings;
 use IO::Handle;
 use LoxBerry::PluginDownload qw(download_plugin_archive);
+sub LoxBerry::System::currtime {
+	die 'Unexpected timestamp format' unless $_[0] eq 'hrtimehires';
+	return '12:34:56.789';
+}
 sub LoxBerry::System::write_file {
 	my ($path, $content) = @_;
 	open(my $fh, '>', $path) or return "$!";
@@ -184,6 +188,9 @@ for my $case (['fail', 0], ['success', 0], ['success', 7]) {
 	open(my $log_fh, '<', "$token_path.log") or die $!;
 	my $contents = do { local $/; <$log_fh> };
 	close $log_fh;
+	my @messages = grep { /<(?:INFO|ERROR)>/ } split /\n/, $contents;
+	ok(@messages && !grep(!/^\d{2}:\d{2}:\d{2}\.\d{3} <(?:INFO|ERROR)> /, @messages),
+		'CGI messages use the same millisecond timestamp column as installer logs');
 	if ($case->[0] eq 'fail') {
 		like($contents, qr/code 28.*download timed out/s, 'CGI logs curl diagnostics');
 		ok(!-e "$dir/$token.zip", 'CGI does not publish a failed download');

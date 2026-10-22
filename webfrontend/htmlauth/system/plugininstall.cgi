@@ -334,16 +334,16 @@ sub install {
 		STDERR->autoflush(1);
 
 		if ($archiveurl) {
-			print "<INFO> Downloading $archiveurl ...\n";
+			print LoxBerry::System::currtime('hrtimehires') . " <INFO> Downloading $archiveurl ...\n";
 			my ($downloaded, $downloaderror) = download_plugin_archive(
 				$bins->{CURL}, $archiveurl, "$uploadpath/$tempfile.zip");
 			if (!$downloaded) {
-				print "<ERROR> Could not download plugin archive: $downloaderror\n";
+				print LoxBerry::System::currtime('hrtimehires') . " <ERROR> Could not download plugin archive: $downloaderror\n";
 				my ($statuserror) = LoxBerry::System::write_file($downloadstatus, "2");
 				die "Could not write download failure status: $statuserror" if $statuserror;
 				exit 1;
 			}
-			print "<INFO> Archive download completed.\n";
+			print LoxBerry::System::currtime('hrtimehires') . " <INFO> Archive download completed.\n";
 		} else {
 			# File is already there
 		}
@@ -358,7 +358,7 @@ sub install {
 			my $reason = $result == -1 ? "Could not start installer: $!"
 				: ($result & 127) ? "Installer terminated by signal " . ($result & 127)
 				: "Installer exited with code " . ($result >> 8);
-			print "<ERROR> $reason\n";
+			print LoxBerry::System::currtime('hrtimehires') . " <ERROR> $reason\n";
 			my ($statuserror) = LoxBerry::System::write_file($downloadstatus, "2");
 			die "Could not write installation failure status: $statuserror" if $statuserror;
 			exit 1;
