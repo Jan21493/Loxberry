@@ -281,7 +281,8 @@ sub install {
 		name => 'Install',
 		filename => $logfile,
 		loglevel => 7,
-		addtime => 1
+		addtime => 1,
+		append => $is_cgi
 	);
 
 	if ($is_cgi eq 0) {
