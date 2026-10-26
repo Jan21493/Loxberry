@@ -36,6 +36,10 @@ if ($url eq 'fail') {
 if ($url eq 'signal') {
 	kill 15, $$;
 }
+if ($url =~ /^exit-(\d+)$/) {
+	print STDERR "original curl diagnostic\n";
+	exit $1;
+}
 CURL
 close $fixture;
 chmod 0755, $fake or die $!;
@@ -64,6 +68,35 @@ for my $case (
 	is(do { local $/; <$fh> }, $url, 'failed attempt does not overwrite final archive');
 	close $fh;
 }
+
+for my $case (
+	[1, qr/protocol/], [3, qr/URL is malformed/],
+	[5, qr/proxy hostname/], [6, qr/server hostname/],
+	[7, qr/connect to the server/], [18, qr/archive is incomplete/],
+	[22, qr/HTTP error/], [23, qr/cannot write the downloaded data/],
+	[26, qr/read local input/], [27, qr/enough memory/],
+	[28, qr/timed out/], [35, qr/TLS handshake/],
+	[47, qr/too many redirects/], [52, qr/without sending a response/],
+	[55, qr/Sending network data/], [56, qr/Receiving network data/],
+	[60, qr/certificate could not be verified/], [63, qr/maximum file size/],
+	[77, qr/CA certificate file/], [92, qr/HTTP\/2 stream error/],
+) {
+	($ok, $error) = download_plugin_archive($fake, "exit-$case->[0]", "$dir/error.zip");
+	ok(!$ok, "curl code $case->[0] remains a failure");
+	like($error, qr/code $case->[0]: original curl diagnostic/, 'exit code and original diagnostic are retained');
+	like($error, $case->[1], "curl code $case->[0] includes an explanation");
+	ok(!-e "$dir/error.zip.part" && !-e "$dir/error.zip", 'explained error does not publish or retain a partial archive');
+	if ($case->[0] == 23) {
+		for my $cause ('disk space', 'write access', 'read-only filesystem',
+			'storage device defect', 'power supply', 'MMC/driver', 'investigate the cause') {
+			like($error, qr/\Q$cause\E/, "write failure mentions $cause");
+		}
+	}
+}
+($ok, $error) = download_plugin_archive($fake, 'exit-99', "$dir/unknown.zip");
+ok(!$ok, 'unknown curl code remains a failure');
+like($error, qr/^curl exited with code 99: original curl diagnostic\s*$/,
+	'unknown curl code keeps original diagnostic without a speculative explanation');
 
 ($ok, $error) = download_plugin_archive("$dir/missing-curl", 'test', $destination);
 ok(!$ok, 'missing curl fails explicitly');
